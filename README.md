@@ -26,19 +26,19 @@ doesn't support an answer, PulseAI responds:
 
 ## ✨ At a glance
 
-| Ingest | Ask | Explore |
-|:---:|:---:|:---:|
+|        Ingest         |        Ask         |                      Explore                       |
+| :-------------------: | :----------------: | :------------------------------------------------: |
 | `POST /api/v1/ingest` | `POST /api/v1/ask` | [Interactive API docs](http://127.0.0.1:8000/docs) |
 
 ## 🔄 How it works
 
-| Step | What happens |
-|:---:|---|
-| **1 · Extract** | Playwright opens a public webpage; readable text is cleaned. |
-| **2 · Prepare** | Text is split into overlapping chunks and embedded. |
-| **3 · Store** | PostgreSQL with pgvector persists the page and vectors. |
-| **4 · Retrieve** | A question finds relevant chunks for its `ingest_id`. |
-| **5 · Answer** | The LLM responds using retrieved page excerpts as context. |
+|       Step       | What happens                                                 |
+| :--------------: | ------------------------------------------------------------ |
+| **1 · Extract**  | Playwright opens a public webpage; readable text is cleaned. |
+| **2 · Prepare**  | Text is split into overlapping chunks and embedded.          |
+|  **3 · Store**   | PostgreSQL with pgvector persists the page and vectors.      |
+| **4 · Retrieve** | A question finds relevant chunks for its `ingest_id`.        |
+|  **5 · Answer**  | The LLM responds using retrieved page excerpts as context.   |
 
 ## 🧰 Tech stack
 
