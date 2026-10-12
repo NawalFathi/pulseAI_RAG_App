@@ -1,61 +1,94 @@
-PulseAI | Website Research API
-Turn public webpages into searchable, question-answerable research.
+<div align="center">
 
-Python FastAPI PostgreSQL
+# ⚡ PulseAI
 
-Research the page, not the model's memory.
+### Website Research API
 
-PulseAI helps InsightIQ analysts turn public webpages into reusable, searchable research. Ingest a page once, ask questions with its ingest_id, and get concise answers grounded in the page's own content—not general model knowledge. If the page does not contain the answer, PulseAI returns: “This information was not found on the website.”
+**Turn public webpages into clear, source-grounded answers.**
 
-INGEST A WEBPAGE → FIND RELEVANT PASSAGES → GET A GROUNDED ANSWER
+![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
-PulseAI processes one submitted webpage at a time; it does not crawl every page across a domain.
+**Ingest a page** &nbsp; → &nbsp; **Ask a question** &nbsp; → &nbsp;
+**Get an answer grounded in its content**
 
-How it works
+</div>
 
-Tech stack
-Layer Technology
-API Python 3.14, FastAPI, Uvicorn
-Web extraction Playwright, Beautiful Soup
-Retrieval OpenAI embeddings, PostgreSQL, pgvector
-Answer generation OpenAI Responses API
-Validation and configuration Pydantic, .env
-Tests Pytest, pytest-asyncio
-Run locally (Windows)
-Prerequisites: Python 3.14, Docker Desktop with Docker Compose, and an OpenAI API key with access to the configured models. OpenAI API usage may incur charges.
+PulseAI helps InsightIQ analysts research public webpages without manually
+reading every page. It stores searchable page content and answers questions
+using relevant excerpts—not the model's general knowledge. When the page
+doesn't support an answer, PulseAI responds:
+**“This information was not found on the website.”**
 
-Run these PowerShell commands from the repository root:
+> **Scope:** Ingestion processes one submitted webpage, not every page on its
+> domain.
 
+## ✨ At a glance
+
+| Ingest | Ask | Explore |
+|:---:|:---:|:---:|
+| `POST /api/v1/ingest` | `POST /api/v1/ask` | [Interactive API docs](http://127.0.0.1:8000/docs) |
+
+## 🔄 How it works
+
+| Step | What happens |
+|:---:|---|
+| **1 · Extract** | Playwright opens a public webpage; readable text is cleaned. |
+| **2 · Prepare** | Text is split into overlapping chunks and embedded. |
+| **3 · Store** | PostgreSQL with pgvector persists the page and vectors. |
+| **4 · Retrieve** | A question finds relevant chunks for its `ingest_id`. |
+| **5 · Answer** | The LLM responds using retrieved page excerpts as context. |
+
+## 🧰 Tech stack
+
+`Python 3.14` · `FastAPI` · `Playwright` · `Beautiful Soup` ·
+`OpenAI API` · `PostgreSQL` · `pgvector` · `Pytest`
+
+## 🚀 Run locally (Windows)
+
+**You’ll need:** Python 3.14, Docker Desktop, and an OpenAI API key with
+access to the configured models. OpenAI API usage may incur charges.
+
+### 1. Install
+
+From the repository root, run in PowerShell:
+
+```powershell
 Set-Location .\pulseAI_App
 py -3.14 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m playwright install chromium
 Copy-Item .env.example .env
-Edit pulseAI_App\.env: set your OpenAI API key, an enabled chat model, and your database password. Keep the password in DB_PASSWORD and DATABASE_URL consistent. Never commit .env or share its credentials.
+```
 
-Initialize PostgreSQL and pgvector
-Start the PostgreSQL container that includes pgvector:
+### 2. Configure
 
+Edit `.env` with your OpenAI API key, enabled chat model, and database
+password. `DB_PASSWORD` and the password in `DATABASE_URL` must match.
+**Never commit or share `.env`.**
+
+### 3. Start
+
+```powershell
 docker compose up -d
-docker compose ps
-Wait until PostgreSQL reports healthy, then initialize the vector extension and application tables:
-
 python -m app.models.init_db
-This command enables the PostgreSQL vector extension and creates the website and content-chunk tables, including the vector column used for semantic search.
-
-Start the API
 python -m uvicorn app.main:app --reload
-Open http://127.0.0.1:8000/docs to explore and call the API.
+```
 
-API examples
+The initialization command enables the PostgreSQL `vector` extension and
+creates the application tables. Visit **http://127.0.0.1:8000/docs** to try
+the API.
 
-### 1. Ingest a webpage
+## 📡 API examples
 
-`POST /api/v1/ingest`
+Ingest the page first, then use its returned `ingest_id` to ask questions.
 
-#### Request body
+<details>
+<summary><strong>1. Ingest a webpage · POST /api/v1/ingest</strong></summary>
+
+**Request**
 
 ```json
 {
@@ -63,9 +96,7 @@ API examples
 }
 ```
 
-#### Output — `200 OK`
-
-##### Response body
+**Response · 200 OK**
 
 ```json
 {
@@ -78,13 +109,14 @@ API examples
 }
 ```
 
-Save the returned `ingest_id` and use it to ask questions about this webpage.
+Submitting the same normalized URL again reuses its existing ID.
 
-### 2. Ask a question
+</details>
 
-`POST /api/v1/ask`
+<details>
+<summary><strong>2. Ask a question · POST /api/v1/ask</strong></summary>
 
-#### Request body
+**Request**
 
 ```json
 {
@@ -93,9 +125,7 @@ Save the returned `ingest_id` and use it to ask questions about this webpage.
 }
 ```
 
-#### Output — `200 OK`
-
-##### Response body
+**Response · 200 OK**
 
 ```json
 {
@@ -108,12 +138,27 @@ Save the returned `ingest_id` and use it to ask questions about this webpage.
 }
 ```
 
-The examples show a successful API flow. Results depend on the page content
-available when it is ingested. If no relevant content supports an answer, the
-API returns `This information was not found on the website`. Re-ingesting the
-same normalized URL returns the existing ID rather than scraping again.
+Actual answer wording depends on the page content and model response.
 
-Tests
-From pulseAI_App with the virtual environment active:
+</details>
 
+Errors follow a consistent envelope:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "A concise description of the error."
+  }
+}
+```
+
+## 🧪 Tests
+
+From `pulseAI_App`, with the virtual environment active:
+
+```powershell
 python -m pytest -v
+```
