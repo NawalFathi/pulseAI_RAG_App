@@ -1,91 +1,130 @@
 <div align="center">
 
-# ⚡ PulseAI
+# PulseAI | Website Research API
 
-### Website Research API
+**Turn public webpages into searchable, question-answerable research.**
 
-**Turn public webpages into clear, source-grounded answers.**
-
-![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-
-**Ingest a page** &nbsp; → &nbsp; **Ask a question** &nbsp; → &nbsp;
-**Get an answer grounded in its content**
+![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%20%2B%20pgvector-4169E1?logo=postgresql&logoColor=white)
 
 </div>
 
-PulseAI helps InsightIQ analysts research public webpages without manually
-reading every page. It stores searchable page content and answers questions
-using relevant excerpts—not the model's general knowledge. When the page
-doesn't support an answer, PulseAI responds:
-**“This information was not found on the website.”**
+> **Research the page, not the model's memory.**
+>
+> PulseAI helps InsightIQ analysts turn public webpages into reusable,
+> searchable research. Ingest a page once, ask questions with its `ingest_id`,
+> and get concise answers grounded in the page's own content—not general
+> model knowledge. If the page does not contain the answer, PulseAI returns:
+> **“This information was not found on the website.”**
 
-> **Scope:** Ingestion processes one submitted webpage, not every page on its
-> domain.
+<div align="center">
 
-## ✨ At a glance
+**INGEST A WEBPAGE** &nbsp;→&nbsp; **FIND RELEVANT PASSAGES** &nbsp;→&nbsp;
+**GET A GROUNDED ANSWER**
 
-|        Ingest         |        Ask         |                      Explore                       |
-| :-------------------: | :----------------: | :------------------------------------------------: |
-| `POST /api/v1/ingest` | `POST /api/v1/ask` | [Interactive API docs](http://127.0.0.1:8000/docs) |
+</div>
 
-## 🔄 How it works
+PulseAI processes one submitted webpage at a time; it does not crawl every
+page across a domain.
 
-|       Step       | What happens                                                 |
-| :--------------: | ------------------------------------------------------------ |
-| **1 · Extract**  | Playwright opens a public webpage; readable text is cleaned. |
-| **2 · Prepare**  | Text is split into overlapping chunks and embedded.          |
-|  **3 · Store**   | PostgreSQL with pgvector persists the page and vectors.      |
-| **4 · Retrieve** | A question finds relevant chunks for its `ingest_id`.        |
-|  **5 · Answer**  | The LLM responds using retrieved page excerpts as context.   |
+## How it works
 
-## 🧰 Tech stack
+```mermaid
+flowchart LR
+    A[Public webpage] --> B[Scrape and clean]
+    B --> C[Chunk and embed]
+    C --> D[(PostgreSQL + pgvector)]
+    E[Question + ingest_id] --> F[Similarity search]
+    D --> F
+    F --> G[LLM answer grounded in page]
+    G --> H[JSON API response]
+```
 
-`Python 3.14` · `FastAPI` · `Playwright` · `Beautiful Soup` ·
-`OpenAI API` · `PostgreSQL` · `pgvector` · `Pytest`
+## Tech stack
 
-## 🚀 Run locally (Windows)
+| Layer                        | Technology                              |
+| ---------------------------- | --------------------------------------- |
+| API                          | Python 3.14, FastAPI, Uvicorn           |
+| Web extraction               | Playwright, Beautiful Soup              |
+| Retrieval                    | OpenAI embeddings, PostgreSQL, pgvector |
+| Answer generation            | OpenAI Responses API                    |
+| Validation and configuration | Pydantic, `.env`                        |
+| Tests                        | Pytest, pytest-asyncio                  |
 
-**You’ll need:** Python 3.14, Docker Desktop, and an OpenAI API key with
-access to the configured models. OpenAI API usage may incur charges.
+## Run locally (Windows)
 
-### 1. Install
+Prerequisites: Python 3.14, Docker Desktop with Docker Compose, and an OpenAI
+API key with access to the configured models. OpenAI API usage may incur
+charges.
 
-From the repository root, run in PowerShell:
+Run these PowerShell commands from the repository root:
 
 ```powershell
 Set-Location .\pulseAI_App
 py -3.14 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m playwright install chromium
 Copy-Item .env.example .env
 ```
 
-### 2. Configure
+Edit `pulseAI_App\.env`: set your OpenAI API key, an enabled chat model, and
+your database password. Keep the password in `DB_PASSWORD` and
+`DATABASE_URL` consistent. **Never commit `.env` or share its credentials.**
 
-Edit `.env` with your OpenAI API key, enabled chat model, and database
-password. `DB_PASSWORD` and the password in `DATABASE_URL` must match.
-**Never commit or share `.env`.**
+### Initialize PostgreSQL and pgvector
 
-### 3. Start
+Start the PostgreSQL container that includes pgvector:
 
 ```powershell
 docker compose up -d
+docker compose ps
+```
+
+Wait until PostgreSQL reports healthy, then initialize the vector extension
+and application tables:
+
+```powershell
 python -m app.models.init_db
+```
+
+This command enables the PostgreSQL `vector` extension and creates the
+website and content-chunk tables, including the vector column used for
+semantic search.
+
+### Start the API
+
+```powershell
 python -m uvicorn app.main:app --reload
 ```
 
-The initialization command enables the PostgreSQL `vector` extension and
-creates the application tables. Visit **http://127.0.0.1:8000/docs** to try
-the API.
+Open **http://127.0.0.1:8000/docs** to explore and call the API.
+
+## API
+
+1. `POST /api/v1/ingest` with `{"url": "https://example.com/"}`.
+2. Save the `data.ingest_id` from the response.
+3. `POST /api/v1/ask` with that ID and a question:
+
+```json
+{
+  "ingest_id": "your-ingest-uuid",
+  "question": "What does this website describe?"
+}
+```
+
+The API returns the existing ID for a previously ingested normalized URL.
+Answers use retrieved webpage excerpts as context; when no relevant content
+is available, the response is `This information was not found on the website`.
+Success and error responses use a consistent JSON envelope.
 
 ## 📡 API examples
 
 Ingest the page first, then use its returned `ingest_id` to ask questions.
 
-Click the endpoint to view the output.
+Click the below API end point to view the output
 
 <details>
 <summary><strong>1. Ingest a webpage · POST /api/v1/ingest</strong></summary>
@@ -157,9 +196,9 @@ Errors follow a consistent envelope:
 }
 ```
 
-## 🧪 Tests
+## Tests
 
-From `pulseAI_App`, with the virtual environment active:
+From `pulseAI_App` with the virtual environment active:
 
 ```powershell
 python -m pytest -v
