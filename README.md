@@ -85,6 +85,8 @@ the API.
 
 Ingest the page first, then use its returned `ingest_id` to ask questions.
 
+Click the endpoint to view the output.
+
 <details>
 <summary><strong>1. Ingest a webpage · POST /api/v1/ingest</strong></summary>
 
